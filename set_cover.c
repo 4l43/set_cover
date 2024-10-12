@@ -1,137 +1,152 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 int U = 7;
 int S = 6;
-int A[6][7] = {
-    {1, 0, 0, 1, 0, 0, 1},
-    {1, 0, 0, 1, 0, 0, 0},
-    {0, 0, 0, 1, 1, 0, 1},
-    {0, 0, 1, 0, 1, 1, 0},
-    {0, 1, 1, 0, 0, 1, 1},
-    {0, 1, 0, 0, 0, 0, 1}
-};
+int **A;
+bool *union;
 
-bool elements_couverts[7];
-
-void initialiser_elements_couverts() {
+void tab_union() {
     for (int i = 0; i < U; i++) {
-        elements_couverts[i] = false;
+        union[i] = false;
     }
 }
 
-int compter_elements_non_couverts(int sous_ensemble[]) {
-    int compte = 0;
-    for (int i = 0; i < U; i++) {
-        if (sous_ensemble[i] == 1 && !elements_couverts[i]) {
-            compte++;
+void afficher(int sous_ensembles[], int taille) {
+    printf("La sous-collection : {");
+    for (int i = 0; i < taille; i++) {
+        printf("%c", 'A' + sous_ensembles[i]);
+        if (i < taille - 1) {
+            printf(",");
         }
     }
-    return compte;
+    printf("} est la couverture optimale\n");
 }
 
-void marquer_comme_couvert(int sous_ensemble[]) {
+void couver(int sous_ensemble[]) {
     for (int i = 0; i < U; i++) {
         if (sous_ensemble[i] == 1) {
-            elements_couverts[i] = true;
+            union[i] = true;
         }
     }
 }
 
-void affichage_sous_ensembles(int sous_ensembles[], int taille) {
-    for (int i = 0; i < taille; i++) {
-        printf("Sous-ensemble %c\n", 'A' + sous_ensembles[i]);
-    }
-}
-
+//2.2 : 
 void algorithme_glouton() {
-    initialiser_elements_couverts();
+    tab_union();
     
-    bool tous_couverts = false;
-    while (!tous_couverts) {
+    bool fin = false;
+    int sous_ensembles_selectionnes[6];
+    int taille_selection = 0;
+
+    while (fin == false) {
         int meilleur_index = -1;
-        int meilleur_compte = -1;
+        int meilleur_cmt = -1;
 
         for (int i = 0; i < S; i++) {
-            int compte = compter_elements_non_couverts(A[i]);
-            if (compte > meilleur_compte) {
-                meilleur_compte = compte;
+            int cmt = 0;
+            for (int j = 0; j < U; j++) {
+                if (A[i][j] == 1 && union[j] == false) {
+                    cmt++;
+                }
+            }
+            if (cmt > meilleur_cmt) {
+                meilleur_cmt = cmt;
                 meilleur_index = i;
             }
         }
 
-        if (meilleur_compte == 0) {
-            break;
-        }
-
-        marquer_comme_couvert(A[meilleur_index]);
-        printf("Selection du sous-ensemble %c\n", 'A' + meilleur_index);
-
-        tous_couverts = true;
-        for (int i = 0; i < U; i++) {
-            if (!elements_couverts[i]) {
-                tous_couverts = false;
-                break;
-            }
+        if (meilleur_cmt == 0) {
+            fin = true;
+        } else {
+            couver(A[meilleur_index]);
+            sous_ensembles_selectionnes[taille_selection] = meilleur_index;
+            taille_selection++;
         }
     }
 
-    if (tous_couverts) {
-        printf("Tous les elements sont couverts.\n");
+    if (taille_selection > 0) {
+        afficher(sous_ensembles_selectionnes, taille_selection);
     } else {
         printf("Impossible de couvrir tous les elements avec les sous-ensembles donnes.\n");
     }
 }
 
-bool est_combinaison_couverte(int sous_ensembles[], int taille) {
-    bool couverts[U];
-    for (int i = 0; i < U; i++) {
-        couverts[i] = false;
-    }
 
+//revoire : 
+bool fin(int sous_ensembles[], int taille) {
+    tab_union();
+    
     for (int i = 0; i < taille; i++) {
-        int index_sous_ensemble = sous_ensembles[i];
-        for (int j = 0; j < U; j++) {
-            if (A[index_sous_ensemble][j] == 1) {
-                couverts[j] = true;
-            }
-        }
+        couver(A[sous_ensembles[i]]);
     }
 
     for (int i = 0; i < U; i++) {
-        if (!couverts[i]) {
+        if (union[i] == false) {
             return false;
         }
     }
     return true;
 }
 
-void combinaisons_exactes(int sous_ensembles[], int debut, int taille, int r) {
-    if (taille == r) {
-        if (est_combinaison_couverte(sous_ensembles, r)) {
-            printf("Combinaison optimale avec %d sous-ensembles :\n", r);
-            affichage_sous_ensembles(sous_ensembles, r);
+
+void algo_exact_recursif(int sous_ensembles[], int debut, int taille, int l) {
+    if (taille == l) {
+        if (fin(sous_ensembles, l)) {
+            afficher(sous_ensembles, l);
         }
         return;
     }
 
     for (int i = debut; i < S; i++) {
         sous_ensembles[taille] = i;
-        combinaisons_exactes(sous_ensembles, i + 1, taille + 1, r);
+        algo_exact_recursif(sous_ensembles, i + 1, taille + 1, l);
     }
 }
 
-void algorithme_exact() {
-    for (int r = 1; r <= S; r++) {
-        int sous_ensembles[r];
-        combinaisons_exactes(sous_ensembles, 0, 0, r);
+void algo_exact() {
+    for (int l = 1; l <= S; l++) {
+        int sous_ensembles[l];
+        algo_exact_recursif(sous_ensembles, 0, 0, l);
     }
 }
 
 int main() {
-    printf("Algorithme Glouton:\n");
+    A = (int **)malloc(S * sizeof(int *));
+    for (int i = 0; i < S; i++) {
+        A[i] = (int *)malloc(U * sizeof(int));
+    }
+
+    int temp[6][7] = {
+        {1, 0, 0, 1, 0, 0, 1},
+        {1, 0, 0, 1, 0, 0, 0},
+        {0, 0, 0, 1, 1, 0, 1},
+        {0, 0, 1, 0, 1, 1, 0},
+        {0, 1, 1, 0, 0, 1, 1},
+        {0, 1, 0, 0, 0, 0, 1}
+    };
+                //||
+                //V
+    for (int i = 0; i < S; i++) {
+        for (int j = 0; j < U; j++) {
+            A[i][j] = temp[i][j];
+        }
+    }
+
+    union = (bool *)malloc(U * sizeof(bool));
+
+    printf("Algorithme Exact :\n");
+    algo_exact();
+
+    printf("\nAlgorithme Glouton :\n");
     algorithme_glouton();
-    printf("\nAlgorithme Exact:\n");
-    algorithme_exact();
+
+    for (int i = 0; i < S; i++) {
+        free(A[i]);
+    }
+    free(A);
+    free(union);
+
     return 0;
 }
